@@ -45,7 +45,9 @@
     lockOff: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11V7a5 5 0 0 1 10 0v4"/><rect x="5" y="11" width="14" height="10"/></svg>',
     lockOn: '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17 9V7A5 5 0 0 0 7 7v2H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V10a1 1 0 0 0-1-1h-2zM9 7a3 3 0 0 1 6 0v2H9z"/></svg>',
     reroll: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v5h-5"/></svg>',
-    dice: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.3" fill="currentColor" stroke="none"/><circle cx="16" cy="8" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="8" cy="16" r="1.3" fill="currentColor" stroke="none"/><circle cx="16" cy="16" r="1.3" fill="currentColor" stroke="none"/></svg>'
+    dice: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.3" fill="currentColor" stroke="none"/><circle cx="16" cy="8" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="8" cy="16" r="1.3" fill="currentColor" stroke="none"/><circle cx="16" cy="16" r="1.3" fill="currentColor" stroke="none"/></svg>',
+    soundOn: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 5V4L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/><path d="M19.5 5.5a9 9 0 0 1 0 13"/></svg>',
+    soundOff: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 5V4L8 9H4z"/><path d="M16 9l6 6"/><path d="M22 9l-6 6"/></svg>'
   };
 
   function escapeHtml(str) {
@@ -84,7 +86,8 @@
       aspect: '16:9',
       count: 1,
       conflict: true,
-      prefixIndex: 1, // 기본값 '일러스트' — 0번은 새로 추가된 '없음'
+      prefixIndex: 0, // 기본값 '없음'
+      muted: false,
       gateType: SLOTS.subject[reels.subject.i].type
     };
   }
@@ -375,8 +378,9 @@
           '<span class="collect-sub">COLLECT</span>' +
         '</button>' +
         '<div class="side-btns">' +
-          '<button class="side-btn" data-action="unlockAll">전체 잠금 해제</button>' +
-          '<button class="side-btn" data-action="clearOutputs">출력 비우기</button>' +
+          '<button class="side-btn mute-btn ' + (state.muted ? 'side-btn--active' : '') + '" data-action="toggleMute">' +
+            (state.muted ? ICONS.soundOff : ICONS.soundOn) + '<span>' + (state.muted ? '소리 켜기' : '소리 끄기') + '</span>' +
+          '</button>' +
         '</div>' +
       '</div>';
   }
@@ -607,25 +611,95 @@
   // 회전 연출(플리커·순차 정지)만 담당. §6 규칙 적용·프롬프트 조립은 이후 단계에서 연결한다.
   var spinTimers = {};
 
+  // ---- 사운드 (틱/착지음은 Web Audio API 실시간 합성, 잭팟음만 외부 mp3) ----
+  // 브라우저 자동재생 정책 때문에 AudioContext는 반드시 사용자 제스처(클릭) 안에서 생성/재개해야
+  // 안정적으로 동작한다 — spinAll()/rerollOne()(둘 다 클릭 핸들러 안에서 바로 호출됨)에서 준비해둔다.
+  var audioCtx = null;
+  function ensureAudio() {
+    if (!audioCtx) {
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      audioCtx = new Ctx();
+      ensureJackpotSound();
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  }
+
+  // ---- 잭팟 사운드 (전체 SPIN에서만 재생되는 외부 음원) ----
+  // 파일명의 '#'는 URL 프래그먼트로 해석되므로 %23으로 인코딩해서 참조한다.
+  var JACKPOT_SRC = 'Massive_slot_machine_%234-1784130221488.mp3';
+  // 15개 릴(사람 주체, 게이팅 릴 전부 활성)이 모두 도는 최장 케이스의 마지막 릴 착지 시각.
+  // 실제로 도는 릴 수와 무관하게 매번 이 길이로 동일하게 재생한다(페이드아웃 없이 그대로 컷).
+  var FULL_SPIN_DUR_MS = 650 + 14 * 150;
+  var jackpotEl = null;
+  var jackpotGain = null;
+  function ensureJackpotSound() {
+    if (jackpotEl || !audioCtx) return;
+    jackpotEl = new Audio(JACKPOT_SRC);
+    jackpotEl.preload = 'auto';
+    jackpotGain = audioCtx.createGain();
+    audioCtx.createMediaElementSource(jackpotEl).connect(jackpotGain).connect(audioCtx.destination);
+  }
+  function playJackpotSound() {
+    if (!audioCtx || !jackpotEl || state.muted) return;
+    jackpotGain.gain.cancelScheduledValues(audioCtx.currentTime);
+    jackpotGain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+    jackpotEl.currentTime = 0;
+    jackpotEl.play().catch(function () {});
+    setTimeout(function () { jackpotEl.pause(); }, FULL_SPIN_DUR_MS);
+  }
+  function playTick() {
+    if (!audioCtx || state.muted) return;
+    var t = audioCtx.currentTime;
+    var osc = audioCtx.createOscillator();
+    var gain = audioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.value = 760 + Math.random() * 220;
+    gain.gain.setValueAtTime(0.05, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.035);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(t);
+    osc.stop(t + 0.04);
+  }
+  function playLand() {
+    if (!audioCtx || state.muted) return;
+    var t = audioCtx.currentTime;
+    var osc = audioCtx.createOscillator();
+    var gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(220, t);
+    osc.frequency.exponentialRampToValueAtTime(110, t + 0.09);
+    gain.gain.setValueAtTime(0.18, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(t);
+    osc.stop(t + 0.13);
+  }
+
   function anySpin() {
     return Object.keys(state.spinning).some(function (id) { return state.spinning[id]; });
   }
 
   // target: rollAll()/rollSingle()로 스핀 시작 시 미리 확정한 착지값 맵. 플리커는 연출일 뿐 값을 정하지 않는다.
-  function spinReels(ids, target) {
+  // playJackpot: true면 마지막 릴 착지 시점에 맞춰 외부 잭팟 음원을 재생·페이드아웃한다(전체 SPIN 전용).
+  function spinReels(ids, target, playJackpot) {
     if (!ids.length) { generateOutputs(); return; }
     // 추첨 중에는 결과 출력창을 비워둔다 — 빈 상태 카드는 진입 애니메이션이 없어
     // 스핀 도중 70ms마다 다시 그려져도 모션이 발생하지 않는다. 결과는 스핀이 끝난 뒤에만 나타난다.
     state.outputs = [];
     ids.forEach(function (id) { state.spinning[id] = true; });
     render();
+    // 릴별 정지 시점을 미리 확정해둔다.
+    var durs = ids.map(function (id, idx) { return 650 + idx * 150 + Math.random() * 140; });
+    if (playJackpot) playJackpotSound();
     ids.forEach(function (id, idx) {
       var pool = SLOTS[id];
       spinTimers[id] = setInterval(function () {
         state.reels[id].i = Math.floor(Math.random() * pool.length);
+        playTick();
         renderReelGridOnly();
       }, 70);
-      var dur = 650 + idx * 150 + Math.random() * 140;
+      var dur = durs[idx];
       setTimeout(function () {
         clearInterval(spinTimers[id]);
         delete spinTimers[id];
@@ -638,6 +712,7 @@
         if (GATED_IDS.indexOf(id) !== -1 && enabledIds().indexOf(id) === -1) {
           renderReelGridOnly();
         } else {
+          playLand();
           state.landed[id] = true;
           renderReelGridOnly();
           setTimeout(function () { state.landed[id] = false; renderReelGridOnly(); }, 650);
@@ -649,15 +724,17 @@
 
   function spinAll() {
     if (anySpin()) return;
+    ensureAudio();
     var target = rollAll();
     state.spins++;
-    spinReels(idsToSpin(target), target);
+    spinReels(idsToSpin(target), target, true);
   }
 
   function rerollOne(id) {
     if (anySpin()) return;
     if (state.reels[id].locked) return;
     if (enabledIds().indexOf(id) === -1) return;
+    ensureAudio();
     var target = {};
     target[id] = rollSingle(id);
     spinReels([id], target);
@@ -670,11 +747,11 @@
     render();
   }
 
-  function unlockAll() {
-    Object.keys(state.reels).forEach(function (id) { state.reels[id].locked = false; });
+  function toggleMute() {
+    state.muted = !state.muted;
+    if (state.muted && jackpotEl) jackpotEl.pause();
     render();
   }
-  function clearOutputs() { state.outputs = []; render(); }
 
   // 저장(collect)은 그 순간의 조립 결과를 스냅샷으로 로그에 고정한다 — 이후 접두사 등을 바꿔도 로그 항목은 바뀌지 않는다.
   function collectEntry(v) {
@@ -738,8 +815,7 @@
     else if (action === 'collect') { collectTop(); }
     else if (action === 'collectCard') { collectCard(+el.dataset.idx); }
     else if (action === 'copy') { copyOutput(+el.dataset.idx); }
-    else if (action === 'unlockAll') { unlockAll(); }
-    else if (action === 'clearOutputs') { clearOutputs(); }
+    else if (action === 'toggleMute') { toggleMute(); }
   }
 
   function onInput(e) {
