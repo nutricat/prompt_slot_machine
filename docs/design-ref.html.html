@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'DSEG7';src:url('https://cdn.jsdelivr.net/npm/dseg@0.46.0/fonts/DSEG7-Classic/DSEG7Classic-Bold.woff2') format('woff2');font-weight:700;font-display:swap}
+:root{
+--bg:#070610;--cab:linear-gradient(180deg,#100d1c,#0a0814);--surface:#0a0812;
+--cell:linear-gradient(180deg,#15101f,#0c0913);--edge:#2c2242;
+--label:#7de3ff;--val:#eef2ff;--kr:#6f6a92;
+--acc:#22e0ff;--acc2:#ff2d95;--lock:#22e0ff;--lockglow:rgba(34,224,255,.55);
+--dis:#0d0b14;--distext:#3f3b52;--win:#ff8fd0;--winglow:rgba(255,45,149,.6);--seg:#22e0ff;
+--gelHi:#ff9fd0;--gel:#ff2d95;--gelLo:#a3005a;--gelText:#fff0f7}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(120% 90% at 50% 0%,#120e22,#050409);font-family:'Archivo Narrow',system-ui,sans-serif;min-height:100vh}
+a{color:var(--acc)}a:hover{color:#7ff0ff}
+input,select,button{font-family:inherit}
+input[type=range]{-webkit-appearance:none;appearance:none;height:8px;border-radius:4px;background:transparent}
+input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:4px;background:var(--dis);box-shadow:inset 0 1px 3px rgba(0,0,0,.7)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;margin-top:-6px;width:20px;height:20px;border-radius:50%;background:radial-gradient(120% 90% at 50% 15%,var(--gelHi),var(--gel) 60%,var(--gelLo));box-shadow:0 3px 6px rgba(0,0,0,.6),inset 0 2px 3px rgba(255,255,255,.5)}
+select{-webkit-appearance:none;appearance:none;background:var(--dis);border:1px solid var(--edge);border-radius:6px;padding:8px 26px 8px 11px;color:var(--val);font:600 13px 'Archivo Narrow';box-shadow:inset 0 1px 4px rgba(0,0,0,.6);cursor:pointer}
+.txin{width:100%;background:#000;border:1px solid var(--edge);border-radius:6px;padding:8px 11px;color:var(--val);font:400 12px 'Archivo Narrow';box-shadow:inset 0 1px 4px rgba(0,0,0,.7);outline:none}
+.txin:focus{border-color:var(--acc)}
+@keyframes lockpulse{0%,100%{box-shadow:0 0 0 1px var(--lc),0 0 14px 1px var(--lg),inset 0 2px 12px rgba(0,0,0,.6)}50%{box-shadow:0 0 0 1px var(--lc),0 0 26px 3px var(--lg),inset 0 2px 12px rgba(0,0,0,.6)}}
+@keyframes lamp{0%,100%{opacity:.4}50%{opacity:1}}
+@keyframes glowin{0%{opacity:0;transform:translateY(-6px)}100%{opacity:1;transform:none}}
+</style>
+</helmet>
+
+<div style="min-height:100vh;padding:26px 22px 60px;display:flex;justify-content:center">
+  <div style="width:100%;max-width:1240px;background:var(--cab);border-radius:22px;border-top:3px solid var(--acc2);padding:22px 22px 26px;box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 60px rgba(255,45,149,.08),inset 0 1px 0 rgba(255,255,255,.05)">
+
+    <!-- MARQUEE -->
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:18px;padding:2px 4px 20px;border-bottom:1px solid var(--edge);margin-bottom:20px">
+      <div>
+        <div style="font:500 9px 'Oswald',sans-serif;letter-spacing:.4em;color:var(--acc);text-transform:uppercase">Random Prompt</div>
+        <div style="font:700 26px/1 'Oswald',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--val);text-shadow:0 0 14px rgba(34,224,255,.4);margin-top:4px">SLOT&nbsp;MACHINE</div>
+        <div style="font:400 11px 'Noto Sans KR',sans-serif;color:var(--kr);margin-top:4px">AI 이미지 프롬프트 조합기</div>
+      </div>
+      <div style="display:flex;gap:6px;background:#000;border:1px solid var(--edge);border-radius:9px;padding:5px;box-shadow:inset 0 2px 8px rgba(0,0,0,.7)">
+        <button onClick="{{ toMachine }}" style="{{ tabMachineStyle }}">머신</button>
+        <button onClick="{{ toLog }}" style="{{ tabLogStyle }}">로그</button>
+      </div>
+      <div style="display:flex;gap:10px">
+        <div style="background:#000;border:1px solid var(--edge);border-radius:7px;padding:7px 11px;text-align:right;box-shadow:inset 0 2px 8px rgba(0,0,0,.8)"><div style="font:400 20px/1 'DSEG7','Courier New',monospace;color:var(--seg);text-shadow:0 0 8px var(--lockglow)">{{ spins }}</div><div style="font:500 7px 'Oswald';letter-spacing:.2em;color:var(--kr);margin-top:4px">SPINS</div></div>
+        <div style="background:#000;border:1px solid var(--edge);border-radius:7px;padding:7px 11px;text-align:right;box-shadow:inset 0 2px 8px rgba(0,0,0,.8)"><div style="font:400 20px/1 'DSEG7','Courier New',monospace;color:var(--win);text-shadow:0 0 8px var(--winglow)">{{ wins }}</div><div style="font:500 7px 'Oswald';letter-spacing:.2em;color:var(--kr);margin-top:4px">건짐</div></div>
+        <div style="background:#000;border:1px solid var(--edge);border-radius:7px;padding:7px 11px;text-align:right;box-shadow:inset 0 2px 8px rgba(0,0,0,.8)"><div style="font:400 20px/1 'DSEG7','Courier New',monospace;color:var(--acc);text-shadow:0 0 8px var(--lockglow)">{{ rate }}</div><div style="font:500 7px 'Oswald';letter-spacing:.2em;color:var(--kr);margin-top:4px">RATE</div></div>
+      </div>
+    </div>
+
+    <sc-if value="{{ machineView }}" hint-placeholder-val="{{ true }}">
+    <div>
+      <!-- REEL GRID -->
+      <div style="background:var(--surface);border:1px solid var(--edge);border-radius:14px;padding:13px;box-shadow:inset 0 3px 20px rgba(0,0,0,.8);margin-bottom:18px">
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:9px">
+          <sc-for list="{{ cells }}" as="c" hint-placeholder-count="15">
+            <sc-if value="{{ c.isBlank }}" hint-placeholder-val="{{ false }}">
+              <div style="aspect-ratio:3/3.1;border-radius:10px;background:#08070f;border:1px dashed rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;box-shadow:inset 0 2px 12px rgba(0,0,0,.7)">
+                <span style="color:var(--distext);font-size:15px">·</span>
+              </div>
+            </sc-if>
+            <sc-if value="{{ c.isReel }}" hint-placeholder-val="{{ true }}">
+              <div style="{{ c.style }}">
+                <div style="{{ c.hatch }}"></div>
+                <div style="{{ c.labelStyle }}">{{ c.label }}</div>
+                <div style="flex:1;display:flex;flex-direction:column;justify-content:center;position:relative;z-index:2;min-height:0">
+                  <sc-if value="{{ c.disabled }}" hint-placeholder-val="{{ false }}">
+                    <div style="font:600 13px 'Oswald',sans-serif;letter-spacing:.18em;color:var(--distext);text-align:center">OFF</div>
+                  </sc-if>
+                  <sc-if value="{{ c.active }}" hint-placeholder-val="{{ true }}">
+                    <div style="{{ c.valStyle }}">{{ c.en }}</div>
+                    <div style="{{ c.krStyle }}">{{ c.kr }}</div>
+                  </sc-if>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;position:relative;z-index:2">
+                  <button onClick="{{ c.toggleLock }}" style="{{ c.lockBtnStyle }}">{{ c.lockGlyph }}</button>
+                  <button onClick="{{ c.reroll }}" style="{{ c.rerollBtnStyle }}">{{ rerollIcon }}</button>
+                </div>
+                <div style="{{ c.tagStyle }}">{{ c.tag }}</div>
+              </div>
+            </sc-if>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- BUTTON ROW -->
+      <div style="display:flex;gap:14px;align-items:stretch;margin-bottom:18px">
+        <button onClick="{{ spin }}" style="{{ spinBtnStyle }}">
+          <span style="display:flex;align-items:center;gap:12px">{{ diceIcon }}<span style="display:flex;flex-direction:column;align-items:flex-start;line-height:1"><span style="font:700 24px 'Oswald',sans-serif;letter-spacing:.14em">SPIN</span><span style="font:400 11px 'Noto Sans KR';opacity:.8;margin-top:3px">전체 재추첨</span></span></span>
+        </button>
+        <button onClick="{{ collect }}" style="position:relative;width:172px;border:1px solid var(--win);border-radius:15px;cursor:pointer;background:linear-gradient(180deg,#1a1020,#0d0b14);box-shadow:0 0 18px var(--winglow),inset 0 0 14px rgba(0,0,0,.5);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:12px">
+          <span style="display:flex;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:var(--win);box-shadow:0 0 6px var(--win);animation:lamp 1s ease-in-out infinite"></span><span style="width:6px;height:6px;border-radius:50%;background:var(--win);box-shadow:0 0 6px var(--win);animation:lamp 1s ease-in-out infinite .33s"></span><span style="width:6px;height:6px;border-radius:50%;background:var(--win);box-shadow:0 0 6px var(--win);animation:lamp 1s ease-in-out infinite .66s"></span></span>
+          <span style="font:700 18px 'Oswald',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--win);text-shadow:0 0 8px var(--winglow)">건짐</span>
+          <span style="font:500 8px 'Oswald';letter-spacing:.22em;color:var(--kr)">COLLECT</span>
+        </button>
+        <div style="display:flex;flex-direction:column;gap:8px;justify-content:center">
+          <button onClick="{{ unlockAll }}" style="background:var(--dis);border:1px solid var(--edge);border-radius:8px;color:var(--kr);font:600 10px 'Oswald';letter-spacing:.1em;text-transform:uppercase;padding:9px 13px;cursor:pointer;white-space:nowrap">전체 잠금 해제</button>
+          <button onClick="{{ clearOutputs }}" style="background:var(--dis);border:1px solid var(--edge);border-radius:8px;color:var(--kr);font:600 10px 'Oswald';letter-spacing:.1em;text-transform:uppercase;padding:9px 13px;cursor:pointer;white-space:nowrap">출력 비우기</button>
+        </div>
+      </div>
+
+      <!-- OUTPUT + CONTROLS -->
+      <div style="display:grid;grid-template-columns:1.55fr 1fr;gap:18px;align-items:start">
+        <!-- OUTPUT -->
+        <div>
+          <div style="font:500 9px 'Oswald';letter-spacing:.24em;text-transform:uppercase;color:var(--label);margin-bottom:11px">결과 출력 <span style="color:var(--kr)">· {{ outCount }}</span></div>
+          <sc-if value="{{ hasOutputs }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:10px;max-height:520px;overflow:auto;padding-right:4px">
+              <sc-for list="{{ outputs }}" as="o" hint-placeholder-count="2">
+                <div style="background:#000;border:1px solid var(--edge);border-radius:10px;padding:13px;box-shadow:inset 0 2px 12px rgba(0,0,0,.8);animation:glowin .3s ease">
+                  <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
+                    <div style="font:500 13px/1.5 'Archivo Narrow';color:var(--val)">{{ o.en }}</div>
+                    <div style="display:flex;flex-direction:column;gap:6px;flex:none">
+                      <button onClick="{{ o.copy }}" style="{{ o.copyStyle }}">{{ o.copyLabel }}</button>
+                      <button onClick="{{ o.collect }}" style="border:1px solid var(--win);background:transparent;color:var(--win);font:600 9px 'Oswald';letter-spacing:.1em;padding:6px 10px;border-radius:6px;cursor:pointer;text-transform:uppercase">건짐</button>
+                    </div>
+                  </div>
+                  <div style="border-top:1px solid var(--edge);padding-top:9px;margin-top:10px;display:flex;gap:8px;align-items:baseline">
+                    <span style="font:500 8px 'Oswald';letter-spacing:.16em;color:var(--acc2);text-transform:uppercase;flex:none">NEG</span>
+                    <span style="font:400 11px 'Archivo Narrow';color:var(--kr)">{{ o.neg }}</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+                    <span style="font:400 10px/1.4 'Noto Sans KR';color:var(--kr)">{{ o.kr }}</span>
+                    <span style="font:600 9px 'Oswald';letter-spacing:.08em;color:var(--acc);border:1px solid var(--edge);border-radius:5px;padding:3px 7px;flex:none;margin-left:10px">{{ o.aspect }}</span>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ noOutputs }}" hint-placeholder-val="{{ true }}">
+            <div style="background:#000;border:1px dashed var(--edge);border-radius:10px;padding:34px 16px;text-align:center;box-shadow:inset 0 2px 12px rgba(0,0,0,.8)">
+              <div style="font:600 14px 'Oswald';letter-spacing:.1em;color:var(--distext);text-transform:uppercase">NO RESULT</div>
+              <div style="font:400 11px 'Noto Sans KR';color:var(--kr);margin-top:6px">SPIN을 눌러 프롬프트를 뽑으세요</div>
+            </div>
+          </sc-if>
+        </div>
+
+        <!-- CONTROLS -->
+        <div style="background:var(--surface);border:1px solid var(--edge);border-radius:12px;padding:16px;box-shadow:inset 0 2px 14px rgba(0,0,0,.6)">
+          <div style="font:500 9px 'Oswald';letter-spacing:.24em;text-transform:uppercase;color:var(--label);margin-bottom:15px">컨트롤</div>
+          <div style="margin-bottom:16px">
+            <div style="display:flex;justify-content:space-between;font:500 8px 'Oswald';letter-spacing:.14em;color:var(--kr);text-transform:uppercase;margin-bottom:9px"><span>물리</span><span style="color:var(--acc)">{{ physRatio }} / {{ dirRatio }}</span><span>연출</span></div>
+            <input type="range" min="0" max="100" value="{{ physRatio }}" onInput="{{ setPhys }}" style="width:100%">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:16px">
+            <div>
+              <div style="font:500 8px 'Oswald';letter-spacing:.14em;color:var(--kr);text-transform:uppercase;margin-bottom:8px">화면비</div>
+              <div style="position:relative"><select value="{{ aspect }}" onChange="{{ setAspect }}" style="width:100%"><sc-for list="{{ aspects }}" as="a" hint-placeholder-count="10"><option value="{{ a }}">{{ a }}</option></sc-for></select><span style="position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--acc);font-size:9px;pointer-events:none">▼</span></div>
+            </div>
+            <div>
+              <div style="font:500 8px 'Oswald';letter-spacing:.14em;color:var(--kr);text-transform:uppercase;margin-bottom:8px">출력 개수</div>
+              <div style="position:relative"><select value="{{ count }}" onChange="{{ setCount }}" style="width:100%"><sc-for list="{{ counts }}" as="n" hint-placeholder-count="5"><option value="{{ n }}">{{ n }}</option></sc-for></select><span style="position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--acc);font-size:9px;pointer-events:none">▼</span></div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <div style="font:500 8px 'Oswald';letter-spacing:.14em;color:var(--kr);text-transform:uppercase;max-width:60%">종족·장르 충돌 필터</div>
+            <button onClick="{{ toggleConflict }}" style="display:flex;align-items:center;gap:9px;background:none;border:none;cursor:pointer">
+              <span style="{{ toggleTrackStyle }}"><span style="{{ toggleKnobStyle }}"></span></span>
+              <span style="font:600 11px 'Oswald';letter-spacing:.1em;color:{{ conflictColor }}">{{ conflictLabel }}</span>
+            </button>
+          </div>
+          <div style="margin-bottom:12px">
+            <div style="font:500 8px 'Oswald';letter-spacing:.14em;color:var(--kr);text-transform:uppercase;margin-bottom:8px">접두사</div>
+            <input class="txin" value="{{ prefix }}" onInput="{{ setPrefix }}">
+          </div>
+          <div>
+            <div style="font:500 8px 'Oswald';letter-spacing:.14em;color:var(--kr);text-transform:uppercase;margin-bottom:8px">접미사</div>
+            <input class="txin" value="{{ suffix }}" onInput="{{ setSuffix }}">
+          </div>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- LOG VIEW -->
+    <sc-if value="{{ logView }}" hint-placeholder-val="{{ false }}">
+    <div style="display:grid;grid-template-columns:1fr 340px;gap:18px;align-items:start">
+      <div>
+        <div style="font:500 9px 'Oswald';letter-spacing:.24em;text-transform:uppercase;color:var(--label);margin-bottom:11px">건짐 로그 <span style="color:var(--kr)">· {{ logCount }}</span></div>
+        <sc-if value="{{ hasLog }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:9px;max-height:560px;overflow:auto;padding-right:4px">
+            <sc-for list="{{ logEntries }}" as="e" hint-placeholder-count="3">
+              <div style="background:#000;border:1px solid var(--edge);border-radius:10px;padding:12px 13px;box-shadow:inset 0 2px 10px rgba(0,0,0,.7)">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                  <span style="font:400 15px/1 'DSEG7','Courier New',monospace;color:var(--seg)">{{ e.time }}</span>
+                  <span style="font:600 9px 'Oswald';color:var(--acc);border:1px solid var(--edge);border-radius:5px;padding:3px 7px">{{ e.aspect }}</span>
+                </div>
+                <div style="font:500 12px/1.5 'Archivo Narrow';color:var(--val);margin-bottom:8px">{{ e.en }}</div>
+                <div style="display:flex;flex-wrap:wrap;gap:5px">
+                  <sc-for list="{{ e.chips }}" as="ch" hint-placeholder-count="4"><span style="font:500 9px 'Oswald';letter-spacing:.06em;color:var(--label);background:var(--dis);border:1px solid var(--edge);border-radius:4px;padding:3px 7px">{{ ch }}</span></sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ noLog }}" hint-placeholder-val="{{ true }}">
+          <div style="background:#000;border:1px dashed var(--edge);border-radius:10px;padding:44px 16px;text-align:center;box-shadow:inset 0 2px 12px rgba(0,0,0,.8)">
+            <div style="font:600 14px 'Oswald';letter-spacing:.1em;color:var(--distext);text-transform:uppercase">EMPTY LOG</div>
+            <div style="font:400 11px 'Noto Sans KR';color:var(--kr);margin-top:6px">마음에 드는 조합에서 건짐을 누르면 여기 쌓입니다</div>
+          </div>
+        </sc-if>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--edge);border-radius:12px;padding:16px;box-shadow:inset 0 2px 14px rgba(0,0,0,.6)">
+        <div style="font:500 9px 'Oswald';letter-spacing:.24em;text-transform:uppercase;color:var(--label);margin-bottom:14px">항목별 적중률</div>
+        <sc-if value="{{ hasLog }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:11px">
+            <sc-for list="{{ logStats }}" as="s" hint-placeholder-count="6">
+              <div>
+                <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+                  <span style="font:500 8px 'Oswald';letter-spacing:.16em;color:var(--kr);text-transform:uppercase">{{ s.label }}</span>
+                  <span style="font:600 12px 'Archivo Narrow';color:var(--val)">{{ s.topEn }} <span style="color:var(--acc);font-family:'DSEG7','Courier New',monospace;font-size:10px">{{ s.pct }}%</span></span>
+                </div>
+                <div style="height:6px;border-radius:3px;background:var(--dis);box-shadow:inset 0 1px 3px rgba(0,0,0,.7);overflow:hidden"><div style="{{ s.barStyle }}"></div></div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ noLog }}" hint-placeholder-val="{{ true }}">
+          <div style="font:400 11px 'Noto Sans KR';color:var(--kr);text-align:center;padding:20px 0">데이터 없음</div>
+        </sc-if>
+      </div>
+    </div>
+    </sc-if>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:980}}">
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    const m=(en,kr,x)=>Object.assign({en,kr},x);
+    const G=(list,g)=>list.map(x=>m(x[0],x[1],{g}));
+    const genre=[].concat(
+      G([['cyberpunk','사이버펑크'],['solarpunk','솔라펑크'],['biopunk','바이오펑크'],['steampunk','스팀펑크'],['dieselpunk','디젤펑크'],['atompunk','아톰펑크'],['clockpunk','클록펑크'],['nanopunk','나노펑크'],['space opera','스페이스 오페라'],['hard science fiction','하드 SF'],['post-apocalyptic','포스트 아포칼립스'],['dystopian','디스토피아'],['utopian','유토피아'],['cosmic horror','코즈믹 호러'],['cyber noir','사이버 느와르'],['transhumanism','트랜스휴머니즘'],['terraforming','테라포밍'],['generation ship','세대 우주선'],['time travel','시간 여행'],['alternate history','대체 역사']],'sf'),
+      G([['high fantasy','하이 판타지'],['low fantasy','로우 판타지'],['dark fantasy','다크 판타지'],['grimdark','그림다크'],['urban fantasy','어반 판타지'],['fairytale','동화'],['mythic epic','신화 서사시'],['sword and sorcery','검과 마법'],['magic academy','마법 학교'],['animism','애니미즘'],['underworld','저승'],['celestial realm','천상계'],['dragon lore','용 전승'],['arthurian legend','아서왕 전설'],['norse mythology','북유럽 신화'],['greek mythology','그리스 신화'],['celtic folklore','켈트 설화'],['slavic folklore','슬라브 설화'],['xianxia','선협'],['hindu mythology','힌두 신화']],'fantasy'),
+      G([['gothic horror','고딕 호러'],['body horror','바디 호러'],['folk horror','포크 호러'],['psychological horror','심리 호러'],['analog horror','아날로그 호러'],['liminal space','리미널 스페이스'],['creepypasta','크리피파스타'],['zombie','좀비'],['vampire','뱀파이어'],['werewolf','늑대인간'],['ghost','유령'],['cult ritual','컬트 의식'],['deep sea horror','심해 호러'],['space horror','우주 호러'],['the backrooms','백룸']],'horror'),
+      G([['ancient egypt','고대 이집트'],['ancient rome','고대 로마'],['medieval europe','중세 유럽'],['viking age','바이킹 시대'],['renaissance','르네상스'],['baroque','바로크'],['victorian era','빅토리아 시대'],['belle epoque','벨 에포크'],['art nouveau','아르누보'],['art deco','아르데코'],['jazz age','재즈 시대'],['film noir','필름 느와르'],['cold war','냉전'],['1980s retro','1980년대 레트로'],['Y2K aesthetic','Y2K 감성']],null),
+      G([['edo period japan','에도 시대 일본'],['korean joseon','조선'],['wuxia','무협'],['mongolian nomad','몽골 유목'],['arabian nights','아라비안 나이트'],['west african','서아프리카'],['mayan aztec','마야·아즈텍'],['andean incan','안데스·잉카'],['polynesian','폴리네시안'],['aboriginal australian','호주 원주민'],['inuit arctic','이누이트 북극'],['balkan','발칸'],['persian','페르시아'],['tibetan','티베트'],['southeast asian tropical','동남아 열대']],null),
+      G([['western','서부극'],['spy thriller','스파이 스릴러'],['heist','하이스트'],['courtroom drama','법정 드라마'],['sports','스포츠'],['slice of life','일상'],['absurdist comedy','부조리 코미디'],['road movie','로드무비'],['survival','생존'],['military','군사']],null),
+      G([['surrealism','초현실주의'],['dadaism','다다이즘'],['brutalism','브루탈리즘'],['minimalism','미니멀리즘'],['object-oriented','오브젝트 지향']],null)
+    );
+    const backdrop=[['dense pine forest','울창한 솔숲'],['tropical rainforest','열대우림'],['desert dunes','사막 사구'],['rocky canyon','바위 협곡'],['mountain ridge','산등성이'],['tundra plain','툰드라 평원'],['wetland swamp','습지'],['open grassland','초원'],['volcanic field','화산지대'],['glacier','빙하'],['limestone cave','석회동굴'],['coastal cliff','해안 절벽'],['tidal flat','갯벌'],['karst peaks','카르스트 봉우리'],['river delta','삼각주'],['base of a waterfall','폭포 아래'],['middle of a lake','호수 한가운데'],['deep ocean floor','심해저'],['just below the water surface','수면 바로 아래'],['foggy bay','안개 낀 만'],['open field under night sky','밤하늘 아래 들판'],['above the cloud layer','구름층 위'],['asteroid surface','소행성 표면'],['low orbit','저궤도'],['narrow back alley','좁은 뒷골목'],['major intersection','큰 교차로'],['open-air market','노천 시장'],['rooftop','옥상'],['under a bridge','다리 밑'],['pedestrian overpass','육교'],['public square','광장'],['dock','부두'],['construction site','공사장'],['demolition zone','철거 구역'],['parking lot','주차장'],['elevated highway','고가도로'],['cemetery','묘지'],['city park','도시 공원'],['stairwell','계단실'],['waiting room','대기실'],['long corridor','긴 복도'],['inside an elevator','엘리베이터 안'],['underground garage','지하 주차장'],['warehouse','창고'],['library stacks','서가'],['auditorium','강당'],['bathroom','욕실'],['kitchen','주방'],['attic','다락'],['basement','지하실'],['greenhouse','온실'],['laundromat','빨래방'],['convenience store at night','야간 편의점'],['empty office floor','텅 빈 사무실 층'],['factory interior','공장 내부'],['power plant','발전소'],['water treatment plant','정수장'],['sewer tunnel','하수 터널'],['subway platform','지하철 승강장'],['airport gate','공항 게이트'],['train carriage','열차 객실'],['hospital ward','병동'],['laboratory','실험실'],['control room','관제실'],['hangar','격납고'],['quarry','채석장'],['temple interior','사원 내부'],['throne room','왕좌의 방'],['council chamber','평의회장'],['prison cell block','감방동'],['theater stage','무대'],['museum gallery','미술관 전시실'],['bathhouse','목욕탕'],['arena','투기장'],['ruins','폐허'],['border checkpoint','국경 검문소'],['remote rest stop','외딴 휴게소'],['lighthouse','등대'],['endless staircase','끝없는 계단'],['featureless void','특징 없는 공허']].map(x=>m(x[0],x[1]));
+    const propsPool=[['(none)','없음'],['a lantern','등불'],['candles','촛불'],['an open book','펼친 책'],['a map','지도'],['a letter','편지'],['a key','열쇠'],['a lock','자물쇠'],['chains','사슬'],['rope','밧줄'],['a ladder','사다리'],['a chair','의자'],['a table','탁자'],['a bed','침대'],['a suitcase','여행가방'],['stacked crates','쌓인 상자'],['ceramic jars','도자기 항아리'],['glass bottles','유리병'],['a teacup','찻잔'],['prepared food','차려진 음식'],['a musical instrument','악기'],['a clock','시계'],['a hand mirror','손거울'],['an umbrella','우산'],['a pair of shoes','신발 한 켤레'],['piled clothing','쌓인 옷'],['a doll','인형'],['stacks of paper','쌓인 종이'],['hand tools','수공구'],['tangled cables','엉킨 케이블'],['exposed pipes','드러난 배관'],['gauges and dials','계기와 다이얼'],['screens','스크린'],['a sign','표지판'],['banners','현수막'],['potted plants','화분'],['bones','뼈'],['debris','잔해'],['a puddle','웅덩이'],['drifting smoke','흩날리는 연기']].map(x=>m(x[0],x[1]));
+    const lighting=[['overcast','흐린 날'],['direct sunlight','직사광'],['backlit','역광'],['side lit','측광'],['lit from below','하부광'],['single light source','단일 광원'],['indoor lighting','실내광'],['night','야간'],['flat lighting','평면광']].map(x=>m(x[0],x[1]));
+    const angle=[['front view','정면'],['three-quarter view','3/4 뷰'],['side profile','측면'],['isometric view','등각'],['eye-level wide shot','아이레벨 와이드'],['high-angle overview','하이앵글 오버뷰'],['low-angle shot','로우앵글'],['top-down view','탑다운']].map(x=>m(x[0],x[1]));
+    const subject=[m('human','인간',{type:'human'}),m('living creature','생물',{type:'creature'}),m('machine','기계',{type:'machine'}),m('structure / phenomenon','구조물·현상',{type:'structure'})];
+    const gender=[['male','남성'],['female','여성'],['androgynous','성별 불명'],['(omit)','명시 안 함'],['a group of men','남성 집단'],['a group of women','여성 집단'],['a mixed-gender group','혼성 집단']].map(x=>m(x[0],x[1]));
+    const age=[['child','아동'],['adolescent','청소년'],['young adult','청년'],['middle-aged','중년'],['elderly','노년'],['(omit)','명시 안 함']].map(x=>m(x[0],x[1]));
+    const role=[['blacksmith','대장장이'],['carpenter','목수'],['potter','도공'],['weaver','직조공'],['farmer','농부'],['fisherman','어부'],['miner','광부'],['lumberjack','벌목꾼'],['mechanic','정비공'],['construction worker','건설 노동자'],['cook','요리사'],['janitor','청소부'],['scholar','학자'],['scribe','필경사'],['librarian','사서'],['cartographer','지도제작자'],['astronomer','천문 관측자'],['alchemist','연금술사'],['inventor','발명가'],['teacher','교사'],['interpreter','통역사'],['chronicler','기록자'],['physician','의사'],['nurse','간호인'],['apothecary','약제사'],['midwife','산파'],['undertaker','장의사'],['veterinarian','수의사'],['warrior','전사'],['guard','경비병'],['commander','지휘관'],['judge','판관'],['bureaucrat','관리'],['ruler','통치자'],['envoy','사절'],['spy','첩자'],['executioner','처형인'],['prisoner','죄수'],['priest','사제'],['shaman','무녀·샤먼'],['monk','수도자'],['fortune teller','점술가'],['pilgrim','순례자'],['heretic','이단자'],['merchant','상인'],['smuggler','밀수업자'],['thief','도둑'],['hunter','사냥꾼'],['guide','안내인'],['messenger','전령'],['sailor','뱃사람'],['driver','마부·운전수'],['wandering musician','유랑 악사'],['jester','광대'],['painter','화가'],['dancer','무용수'],['storyteller','이야기꾼'],['actor','배우'],['athlete','운동선수'],['(omit)','역할 없음']].map(x=>m(x[0],x[1]));
+    const R=(en,kr,s)=>m(en,kr,{s});
+    const race=[R('human','인간','neutral'),R('(omit)','인간(명시 안 함)','neutral'),R('elf','엘프','fantasy'),R('dark elf','다크엘프','fantasy'),R('dwarf','드워프','fantasy'),R('orc','오크','fantasy'),R('beastfolk','수인','fantasy'),R('avian humanoid','조인','fantasy'),R('aquatic humanoid','어인','fantasy'),R('reptilian humanoid','파충인','fantasy'),R('plant humanoid','식물인','fantasy'),R('golem','골렘','fantasy'),R('undead','언데드','fantasy'),R('spectral being','유령체','fantasy'),R('cybernetic human','의체화 인간','sf'),R('android','안드로이드','sf'),R('mutant','돌연변이','sf'),R('alien species','외계종','sf'),R('masked figure','가면·은폐','neutral'),R('faceless','얼굴 없음','neutral')];
+    const count=[['a lone figure','단독'],['two figures facing each other','2인 대치'],['two figures side by side','2인 동행'],['a group of three','3인 그룹'],['a small group','소집단'],['a large crowd','군중'],['one figure watched by another','단독+관찰자'],['scattered figures in the distance','배경에 흩어진 다수'],['one figure in foreground, many behind','전경 1인+후경 다수'],['no figures','인물 없음']].map(x=>m(x[0],x[1]));
+    this.META=[
+      {id:'genre',label:'GENRE',pool:genre},
+      {id:'backdrop',label:'BACKDROP',pool:backdrop},
+      {id:'props',label:'PROPS',pool:propsPool},
+      {id:'lighting',label:'LIGHTING',pool:lighting},
+      {id:'angle',label:'ANGLE',pool:angle},
+      {id:'subject',label:'SUBJECT',pool:subject},
+      {id:'gender',label:'GENDER',pool:gender},
+      {id:'age',label:'AGE',pool:age},
+      {id:'role',label:'ROLE',pool:role},
+      {id:'race',label:'RACE',pool:race},
+      {id:'count',label:'FIGURES',pool:count}
+    ];
+    this.byId={}; this.META.forEach(r=>this.byId[r.id]=r);
+    this.gatedIds=['gender','age','role','race'];
+    const reels={}; this.META.forEach(r=>reels[r.id]={i:this.longestIdx(r.pool),locked:false});
+    this._iv={};
+    this.state={
+      view:'machine', reels, spinning:{}, landed:{}, outputs:[], log:[],
+      spins:0, wins:0, physRatio:62, aspect:'16:9', count:1, conflict:true, copied:null,
+      prefix:'concept art sketch, rough digital painting, ', suffix:', muted palette'
+    };
+  }
+  componentWillUnmount(){ Object.values(this._iv).forEach(clearInterval); }
+
+  longestIdx(pool){ let bi=0,bl=-1; pool.forEach((p,i)=>{ if(p.en.length>bl){bl=p.en.length;bi=i;} }); return bi; }
+  subType(i){ return this.byId.subject.pool[i].type; }
+  gateFor(type){ if(type==='human')return {gender:1,age:1,role:1,race:1}; if(type==='creature')return {gender:1}; return {}; }
+  enabledForType(type){ const on=this.gateFor(type); return this.META.filter(m=> !this.gatedIds.includes(m.id) || on[m.id]).map(m=>m.id); }
+  enabledIds(){ return this.enabledForType(this.subType(this.state.reels.subject.i)); }
+
+  anySpin(){ return Object.values(this.state.spinning).some(Boolean); }
+
+  spinReels(ids){
+    if(!ids.length){ this.generate(); return; }
+    const spinning={...this.state.spinning}; ids.forEach(id=>spinning[id]=true);
+    this.setState({spinning});
+    ids.forEach((id,idx)=>{
+      const r=this.byId[id];
+      this._iv[id]=setInterval(()=>{ this.setState(s=>({reels:{...s.reels,[id]:{...s.reels[id],i:Math.floor(Math.random()*r.pool.length)}}})); },70);
+      const dur=650+idx*150+Math.random()*140;
+      setTimeout(()=>{
+        clearInterval(this._iv[id]); delete this._iv[id];
+        const fi=Math.floor(Math.random()*r.pool.length);
+        this.setState(s=>({reels:{...s.reels,[id]:{...s.reels[id],i:fi}},spinning:{...s.spinning,[id]:false},landed:{...s.landed,[id]:true}}));
+        setTimeout(()=>this.setState(s=>({landed:{...s.landed,[id]:false}})),650);
+        if(idx===ids.length-1) setTimeout(()=>this.generate(),90);
+      },dur);
+    });
+  }
+  spin=()=>{ if(this.anySpin())return; const en=this.enabledIds();
+    const ids=this.META.filter(m=>en.includes(m.id)&&!this.state.reels[m.id].locked).map(m=>m.id);
+    this.setState(s=>({spins:s.spins+1})); this.spinReels(ids); };
+  reroll=(id)=>()=>{ if(this.anySpin()||this.state.reels[id].locked)return;
+    if(!this.enabledIds().includes(id))return; this.spinReels([id]); };
+  toggleLock=(id)=>()=>{ if(!this.enabledIds().includes(id))return;
+    this.setState(s=>({reels:{...s.reels,[id]:{...s.reels[id],locked:!s.reels[id].locked}}})); };
+  unlockAll=()=>{ this.setState(s=>{ const r={}; Object.keys(s.reels).forEach(k=>r[k]={...s.reels[k],locked:false}); return {reels:r}; }); };
+  clearOutputs=()=>this.setState({outputs:[]});
+
+  vals(rv){ const r=rv||this.state.reels; const o={}; this.META.forEach(m=>o[m.id]=r[m.id].i); return o; }
+  randVals(){ const en=this.enabledIds(); const base=this.vals();
+    this.META.forEach(m=>{ if(en.includes(m.id)&&!this.state.reels[m.id].locked) base[m.id]=Math.floor(Math.random()*m.pool.length); });
+    return base; }
+  applyConflict(v){ if(!this.state.conflict)return v; if(this.subType(v.subject)!=='human')return v;
+    const g=this.byId.genre.pool[v.genre].g; const rc=this.byId.race.pool[v.race].s;
+    if((g==='sf'&&rc==='fantasy')||(g==='fantasy'&&rc==='sf')) v={...v,race:0};
+    return v; }
+  isOmit(en){ return !en || en==='(omit)' || en==='(none)' || en==='no subject'; }
+  build(v){ v=this.applyConflict(v); const type=this.subType(v.subject);
+    const val=(id)=>this.byId[id].pool[v[id]]; const P=[]; const K=[];
+    const add=(en,k)=>{ if(!this.isOmit(en)){ P.push(en); if(k)K.push(k); } };
+    add(val('genre').en,val('genre').kr);
+    if(type==='human'){
+      const desc=['gender','age','race','role'].map(id=>val(id)).filter(x=>!this.isOmit(x.en));
+      const c=val('count'); const words=desc.map(x=>x.en).join(' ');
+      P.push(words?(c.en+' of '+words):c.en);
+      K.push(c.kr+(desc.length?' · '+desc.map(x=>x.kr).join(' '):''));
+    } else {
+      const form=type==='creature'?'a living creature':type==='machine'?'a machine':'a structure or phenomenon';
+      const fkr=type==='creature'?'생물':type==='machine'?'기계':'구조물·현상';
+      let clause=form,k=fkr;
+      if(type==='creature'&&!this.isOmit(val('gender').en)){ clause=val('gender').en+' '+form; k=val('gender').kr+' '+fkr; }
+      if(type!=='structure'){ clause+=', '+val('count').en; k+=' · '+val('count').kr; }
+      P.push(clause); K.push(k);
+    }
+    add('in '+val('backdrop').en,val('backdrop').kr);
+    if(!this.isOmit(val('props').en)){ P.push('with '+val('props').en); K.push(val('props').kr); }
+    add(val('lighting').en,val('lighting').kr);
+    add(val('angle').en,val('angle').kr);
+    const full=(this.state.prefix||'')+P.join(', ')+(this.state.suffix||'');
+    return { en:full, neg:'lowres, blurry, jpeg artifacts, watermark, text, extra limbs, deformed hands, over-rendered', kr:K.join(' · '), aspect:this.state.aspect, v };
+  }
+  generate(){ const outs=[this.build(this.vals())];
+    for(let k=1;k<this.state.count;k++) outs.push(this.build(this.randVals()));
+    this.setState(s=>({outputs:[...outs,...s.outputs].slice(0,40)})); }
+
+  copy=(text,key)=>()=>{ try{navigator.clipboard&&navigator.clipboard.writeText(text);}catch(e){}
+    this.setState({copied:key}); setTimeout(()=>this.setState(s=>s.copied===key?{copied:null}:{}),1200); };
+  collectVals=(v,pack)=>{ this.setState(s=>({log:[{ts:Date.now(),...(pack||this.build(v)),v},...s.log],wins:s.wins+1})); };
+  collect=()=>{ const o=this.state.outputs[0]; if(o) this.collectVals(o.v,o); else this.collectVals(this.vals()); };
+
+  setPhys=(e)=>this.setState({physRatio:+e.target.value});
+  setAspect=(e)=>this.setState({aspect:e.target.value});
+  setCount=(e)=>this.setState({count:+e.target.value});
+  toggleConflict=()=>this.setState(s=>({conflict:!s.conflict}));
+  setPrefix=(e)=>this.setState({prefix:e.target.value});
+  setSuffix=(e)=>this.setState({suffix:e.target.value});
+  toMachine=()=>this.setState({view:'machine'});
+  toLog=()=>this.setState({view:'log'});
+
+  ic(paths,fill){ return React.createElement('svg',{width:13,height:13,viewBox:'0 0 24 24',fill:fill||'none',stroke:fill?'none':'currentColor',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},paths.map((d,i)=>React.createElement('path',{key:i,d}))); }
+
+  renderVals(){
+    const s=this.state; const en=this.enabledIds();
+    const lockIcon=this.ic(['M7 11V7a5 5 0 0 1 10 0v4','M5 11h14v10H5z'].map(x=>x));
+    const lockOn=React.createElement('svg',{width:13,height:13,viewBox:'0 0 24 24',fill:'currentColor'},React.createElement('path',{d:'M17 9V7A5 5 0 0 0 7 7v2H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V10a1 1 0 0 0-1-1h-2zM9 7a3 3 0 0 1 6 0v2H9z'}));
+    const rerollIcon=this.ic(['M21 12a9 9 0 1 1-3-6.7','M21 3v5h-5']);
+    const diceIcon=React.createElement('svg',{width:26,height:26,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},React.createElement('rect',{key:1,x:3,y:3,width:18,height:18,rx:3}),React.createElement('circle',{key:2,cx:8,cy:8,r:1.3,fill:'currentColor'}),React.createElement('circle',{key:3,cx:16,cy:8,r:1.3,fill:'currentColor'}),React.createElement('circle',{key:4,cx:12,cy:12,r:1.3,fill:'currentColor'}),React.createElement('circle',{key:5,cx:8,cy:16,r:1.3,fill:'currentColor'}),React.createElement('circle',{key:6,cx:16,cy:16,r:1.3,fill:'currentColor'}));
+
+    const order=['genre','backdrop','props','lighting','angle','subject','gender','age','role','count'];
+    const gridIds=['genre','backdrop','props','lighting','angle','subject','gender','age','role','race','count','__b1','__b2','__b3','__b4'];
+    const base="position:relative;aspect-ratio:3/3.1;border-radius:10px;padding:11px 9px 9px;display:flex;flex-direction:column;--lc:#22e0ff;--lg:rgba(34,224,255,.55);";
+    const cells=gridIds.map(id=>{
+      if(id.startsWith('__')) return {isBlank:true,isReel:false};
+      const m=this.byId[id]; const rs=s.reels[id]; const disabled=!en.includes(id);
+      const spinning=!!s.spinning[id]; const landed=!!s.landed[id]; const locked=rs.locked;
+      let st,tag,tagStyle,valExtra='';
+      if(disabled){ st=base+"background:var(--dis);border:1px solid rgba(255,255,255,.05);overflow:hidden;box-shadow:inset 0 2px 12px rgba(0,0,0,.6)"; tag='비활성'; tagStyle="position:absolute;top:8px;right:8px;font:500 6px 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:var(--distext);z-index:3"; }
+      else if(spinning){ st=base+"background:var(--cell);border:1px solid var(--acc);box-shadow:inset 0 2px 12px rgba(0,0,0,.6),0 0 16px var(--lockglow)"; tag='회전중'; tagStyle="position:absolute;top:8px;right:8px;font:500 6px 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:var(--acc);z-index:3"; valExtra=";filter:blur(1.3px);opacity:.85"; }
+      else if(landed){ st=base+"background:var(--cell);border:1px solid var(--acc);box-shadow:inset 0 2px 12px rgba(0,0,0,.6),0 0 24px 2px var(--winglow)"; tag='정지'; tagStyle="position:absolute;top:8px;right:8px;font:500 6px 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:var(--acc);z-index:3"; valExtra=";color:var(--win);text-shadow:0 0 12px var(--winglow)"; }
+      else if(locked){ st=base+"background:var(--cell);border:1px solid var(--lock);animation:lockpulse 1.8s ease-in-out infinite"; tag='잠김'; tagStyle="position:absolute;top:7px;right:7px;font:600 6px 'Oswald';letter-spacing:.08em;text-transform:uppercase;color:#06121a;background:var(--lock);padding:2px 5px;border-radius:3px;z-index:3"; }
+      else { st=base+"background:var(--cell);border:1px solid var(--edge);box-shadow:inset 0 2px 12px rgba(0,0,0,.6)"; tag='대기'; tagStyle="position:absolute;top:8px;right:8px;font:500 6px 'Oswald';letter-spacing:.14em;text-transform:uppercase;color:var(--kr);z-index:3"; }
+      return {
+        isBlank:false, isReel:true, id, label:m.label, disabled, active:!disabled,
+        en:m.pool[rs.i].en, kr:m.pool[rs.i].kr, tag, tagStyle, style:st,
+        hatch: disabled?"position:absolute;inset:0;background:repeating-linear-gradient(135deg,transparent,transparent 8px,rgba(0,0,0,.28) 8px,rgba(0,0,0,.28) 9px);pointer-events:none":"display:none",
+        labelStyle:"font:500 7.5px 'Oswald';letter-spacing:.2em;text-transform:uppercase;position:relative;z-index:2;color:"+(disabled?'var(--distext)':'var(--label)'),
+        valStyle:"font:600 clamp(12px,1.45vw,17px)/1.05 'Archivo Narrow';color:var(--val);text-wrap:pretty"+valExtra,
+        krStyle:"font:400 clamp(8px,.85vw,10px)/1.3 'Noto Sans KR';color:var(--kr);margin-top:3px",
+        lockGlyph: locked?lockOn:lockIcon,
+        lockBtnStyle:"background:none;border:none;cursor:pointer;padding:2px;display:flex;color:"+(locked?'var(--lock)':'var(--kr)')+(locked?";filter:drop-shadow(0 0 4px var(--lockglow))":"")+";"+(disabled?"opacity:.2;pointer-events:none":"opacity:.65"),
+        rerollBtnStyle:"background:none;border:none;cursor:pointer;padding:2px;display:flex;color:var(--kr);"+(disabled||locked?"opacity:.2;pointer-events:none":"opacity:.55"),
+        toggleLock:this.toggleLock(id), reroll:this.reroll(id)
+      };
+    });
+
+    const outputs=s.outputs.map((o,i)=>({ en:o.en, neg:o.neg, kr:o.kr, aspect:o.aspect,
+      copyLabel: s.copied===i?'복사됨':'복사',
+      copyStyle:"border:1px solid "+(s.copied===i?'var(--acc)':'var(--edge)')+";background:"+(s.copied===i?'rgba(34,224,255,.12)':'transparent')+";color:var(--acc);font:600 9px 'Oswald';letter-spacing:.1em;padding:6px 12px;border-radius:6px;cursor:pointer;text-transform:uppercase;white-space:nowrap",
+      copy:this.copy(o.en,i), collect:()=>this.collectVals(o.v,o) }));
+
+    const fmt=(ts)=>{ const d=new Date(ts); const p=n=>String(n).padStart(2,'0'); return p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds()); };
+    const logEntries=s.log.map(e=>({ time:fmt(e.ts), en:e.en, aspect:e.aspect,
+      chips:[this.byId.genre.pool[e.v.genre].en,this.byId.subject.pool[e.v.subject].en,this.byId.role.pool[e.v.role].en,this.byId.lighting.pool[e.v.lighting].en] }));
+
+    let logStats=[];
+    if(s.log.length){ const statIds=['genre','backdrop','lighting','angle','role','count'];
+      logStats=statIds.map(id=>{ const m=this.byId[id]; const cnt={}; s.log.forEach(e=>{cnt[e.v[id]]=(cnt[e.v[id]]||0)+1;});
+        let bi=0,bc=0; Object.keys(cnt).forEach(k=>{if(cnt[k]>bc){bc=cnt[k];bi=+k;}});
+        const pct=Math.round(bc/s.log.length*100);
+        return {label:m.label, topEn:m.pool[bi].en, pct, barStyle:"height:100%;width:"+pct+"%;background:linear-gradient(90deg,var(--acc2),var(--acc));box-shadow:0 0 8px var(--lockglow)"}; }); }
+
+    const rate=s.spins?Math.min(100,Math.max(0,Math.round(s.wins/s.spins*100))):0;
+    const tabOn="border:none;border-radius:6px;padding:8px 16px;font:600 12px 'Oswald';letter-spacing:.14em;text-transform:uppercase;cursor:pointer;background:var(--acc);color:#05121a;box-shadow:0 0 12px var(--lockglow)";
+    const tabOff="border:none;border-radius:6px;padding:8px 16px;font:600 12px 'Oswald';letter-spacing:.14em;text-transform:uppercase;cursor:pointer;background:transparent;color:var(--kr)";
+    const spinning=this.anySpin();
+
+    return {
+      machineView:s.view==='machine', logView:s.view==='log',
+      spins:String(s.spins).padStart(4,'0'), wins:String(s.wins).padStart(4,'0'), rate:String(rate).padStart(2,'0')+'%',
+      cells, rerollIcon, diceIcon,
+      spin:this.spin, collect:this.collect, unlockAll:this.unlockAll, clearOutputs:this.clearOutputs,
+      spinBtnStyle:"flex:1;border:none;border-radius:15px;cursor:"+(spinning?'default':'pointer')+";display:flex;align-items:center;justify-content:center;padding:16px;color:var(--gelText);background:radial-gradient(130% 95% at 50% 8%,var(--gelHi),var(--gel) 48%,var(--gelLo) 100%);box-shadow:0 7px 0 var(--gelLo),0 15px 22px rgba(0,0,0,.5),inset 0 3px 6px rgba(255,255,255,.5),inset 0 -7px 14px rgba(0,0,0,.35);text-shadow:0 1px 0 rgba(255,255,255,.35);"+(spinning?"opacity:.6;transform:translateY(3px);box-shadow:0 4px 0 var(--gelLo),inset 0 3px 6px rgba(255,255,255,.4)":""),
+      outputs, hasOutputs:s.outputs.length>0, noOutputs:s.outputs.length===0, outCount:s.outputs.length+'개',
+      physRatio:s.physRatio, dirRatio:100-s.physRatio, setPhys:this.setPhys,
+      aspect:s.aspect, aspects:['16:9','9:16','1:1','4:3','3:2','21:9','2:3','3:4','5:4','4:5'], setAspect:this.setAspect,
+      count:s.count, counts:[1,2,3,4,6], setCount:this.setCount,
+      toggleConflict:this.toggleConflict, conflictLabel:s.conflict?'ON':'OFF', conflictColor:s.conflict?'var(--val)':'var(--kr)',
+      toggleTrackStyle:"position:relative;width:44px;height:22px;border-radius:11px;background:"+(s.conflict?'var(--acc)':'var(--dis)')+";box-shadow:inset 0 1px 4px rgba(0,0,0,.5)"+(s.conflict?",0 0 8px var(--lockglow)":""),
+      toggleKnobStyle:"position:absolute;top:2px;"+(s.conflict?'right:2px':'left:2px')+";width:18px;height:18px;border-radius:50%;background:radial-gradient(120% 90% at 50% 15%,#fff,#cdd 60%,#889);box-shadow:0 2px 4px rgba(0,0,0,.5)",
+      prefix:s.prefix, suffix:s.suffix, setPrefix:this.setPrefix, setSuffix:this.setSuffix,
+      toMachine:this.toMachine, toLog:this.toLog,
+      tabMachineStyle:s.view==='machine'?tabOn:tabOff, tabLogStyle:s.view==='log'?tabOn:tabOff,
+      logEntries, hasLog:s.log.length>0, noLog:s.log.length===0, logCount:s.log.length+'개', logStats
+    };
+  }
+}
+</script>
+</body>
+</html>
